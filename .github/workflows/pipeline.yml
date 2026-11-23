@@ -1,0 +1,208 @@
+name: node_pool CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [staging, main]
+  push:
+    branches: [staging, main]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  id-token: write
+
+env:
+  GCP_WORKLOAD_IDENTITY_PROVIDER: "projects/96911272552/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+  GCP_SERVICE_ACCOUNT: "github-action-deployer@is201-ethics-credit-project.iam.gserviceaccount.com"
+  FIREBASE_PROJECT_ID: "is201-ethics-credit-project"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # STAGE 1: Syntax, JSON Config, & Merge-Conflict Gate
+  # ---------------------------------------------------------------------------
+  syntax-check:
+    name: "1 · Syntax & Conflict Check"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate JS/JSON syntax & conflict markers
+        run: node scripts/validate-project.js --stage=syntax
+
+  # ---------------------------------------------------------------------------
+  # STAGE 2: IS 201 Rubric & Model Integrity Gate
+  # ---------------------------------------------------------------------------
+  rubric-gate:
+    name: "2 · IS 201 Rubric Gate"
+    needs: syntax-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate IS 201 variables, weights, & distinct pairs
+        run: node scripts/validate-project.js --stage=rubric
+
+  # ---------------------------------------------------------------------------
+  # STAGE 3: Simulator Math & Rule Trigger Smoke Tests
+  # ---------------------------------------------------------------------------
+  simulation-test:
+    name: "3 · Simulation Smoke Test"
+    needs: rubric-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run preset & interaction trigger tests
+        run: node scripts/validate-project.js --stage=simulation
+
+  # ---------------------------------------------------------------------------
+  # STAGE 4A: Pull Request Live Preview URL (Comments preview link on PR)
+  # ---------------------------------------------------------------------------
+  pr-preview:
+    name: "4 · PR Preview Deploy"
+    needs: simulation-test
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Authenticate to Google Cloud (Keyless OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Deploy temporary PR preview channel to Firebase
+        id: deploy_preview
+        run: |
+          CHANNEL="pr-${{ github.event.pull_request.number }}"
+          npx -y firebase-tools@latest hosting:channel:deploy "$CHANNEL" \
+            --project "${{ env.FIREBASE_PROJECT_ID }}" \
+            --expires 7d \
+            --json > /tmp/fb-preview.json
+          PREVIEW_URL=$(node -e 'const d=require("/tmp/fb-preview.json"); const res=Object.values(d.result||{})[0]||{}; console.log(res.url||"");')
+          EXPIRE_TIME=$(node -e 'const d=require("/tmp/fb-preview.json"); const res=Object.values(d.result||{})[0]||{}; console.log(res.expireTime||"");')
+          echo "url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+          echo "expires=$EXPIRE_TIME" >> "$GITHUB_OUTPUT"
+
+      - name: Comment Preview URL on Pull Request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- node-pool-firebase-preview -->';
+            const url = '${{ steps.deploy_preview.outputs.url }}';
+            const expires = '${{ steps.deploy_preview.outputs.expires }}';
+            const sha = context.payload.pull_request.head.sha.slice(0, 7);
+            const body = `${marker}\n### 🔍 Firebase PR Preview Ready\n- **Preview URL:** ${url}\n- **Commit:** \`${sha}\`\n- **Expires:** \`${expires}\``;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  # ---------------------------------------------------------------------------
+  # STAGE 4B: Staging Channel Deploy (Auto-updates staging URL on push to staging)
+  # ---------------------------------------------------------------------------
+  deploy-staging:
+    name: "4 · Deploy Staging Channel"
+    needs: simulation-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ steps.firebase_staging.outputs.url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Authenticate to Google Cloud (Keyless OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Deploy to Firebase Hosting (staging channel)
+        id: firebase_staging
+        run: |
+          npx -y firebase-tools@latest hosting:channel:deploy staging \
+            --project "${{ env.FIREBASE_PROJECT_ID }}" \
+            --expires 30d \
+            --json > /tmp/fb-staging.json
+          STAGING_URL=$(node -e 'const d=require("/tmp/fb-staging.json"); const res=Object.values(d.result||{})[0]||{}; console.log(res.url||"");')
+          echo "url=$STAGING_URL" >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # STAGE 5: Production Deploy (Deploys to live URL when merged into main)
+  # ---------------------------------------------------------------------------
+  deploy-production:
+    name: "5 · Deploy Production (Live)"
+    needs: simulation-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://is201-ethics-credit-project.web.app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Authenticate to Google Cloud (Keyless OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Deploy live to Firebase Hosting
+        run: |
+          npx -y firebase-tools@latest deploy --only hosting --project "${{ env.FIREBASE_PROJECT_ID }}"

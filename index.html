@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>node_pool — AI Credit Scoring Ethics Simulator | IS 201</title>
+  <meta name="description" content="Interactive AI credit scoring ethics simulator by node_pool for IS 201." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- TOP HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="#overview" class="brand" data-tab-target="overview">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+            <rect x="1.75" y="1.75" width="24.5" height="24.5" stroke="currentColor" stroke-width="1.6" />
+            <line x1="8" y1="8" x2="20" y2="8" stroke="currentColor" stroke-width="1.2" />
+            <line x1="8" y1="20" x2="20" y2="20" stroke="currentColor" stroke-width="1.2" />
+            <line x1="8" y1="8" x2="8" y2="20" stroke="currentColor" stroke-width="1.2" />
+            <line x1="20" y1="8" x2="20" y2="20" stroke="currentColor" stroke-width="1.2" />
+            <line x1="8" y1="8" x2="14" y2="14" stroke="currentColor" stroke-width="1.4" />
+            <line x1="20" y1="8" x2="14" y2="14" stroke="currentColor" stroke-width="1.4" />
+            <line x1="8" y1="20" x2="14" y2="14" stroke="currentColor" stroke-width="1.4" />
+            <line x1="20" y1="20" x2="14" y2="14" stroke="currentColor" stroke-width="1.4" />
+            <circle cx="8" cy="8" r="2.2" fill="currentColor" />
+            <circle cx="20" cy="8" r="2.2" fill="currentColor" />
+            <circle cx="8" cy="20" r="2.2" fill="currentColor" />
+            <circle cx="20" cy="20" r="2.2" fill="currentColor" />
+            <circle cx="14" cy="14" r="3" fill="#a83322" />
+          </svg>
+        </span>
+        <span class="brand-text">
+          <span class="brand-name" id="nav-brand-name">node_pool</span>
+          <span class="brand-badge" id="nav-course-badge">IS 201</span>
+        </span>
+      </a>
+
+      <nav class="main-nav" aria-label="Primary sections">
+        <button type="button" class="nav-tab active" data-tab="overview">Overview</button>
+        <button type="button" class="nav-tab" data-tab="scenario">Scenario</button>
+        <button type="button" class="nav-tab" data-tab="simulator">Simulator</button>
+        <button type="button" class="nav-tab" data-tab="model">Model &amp; Ethics</button>
+        <button type="button" class="nav-tab" data-tab="evidence">Evidence</button>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="btn-utility" id="toggle-all-sections" title="Show all tabs stacked on one page">
+          Full Page
+        </button>
+        <button type="button" class="btn-action-sm" data-tab-target="simulator">
+          Start Sim &rarr;
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container" id="main-content">
+    <!-- ==================================================================
+         1. OVERVIEW (TITLE SCREEN)
+         ================================================================== -->
+    <section class="tab-panel active" id="panel-overview" data-section="overview">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow" id="hero-eyebrow"></p>
+          <h1 class="hero-headline" id="hero-headline"></h1>
+          <p class="hero-subtext" id="hero-subtext"></p>
+
+          <div class="hero-cta-row">
+            <button type="button" class="btn-action-lg" data-tab-target="simulator" id="hero-primary-cta">
+              Start Simulator &rarr;
+            </button>
+            <button type="button" class="btn-secondary-lg" data-tab-target="scenario" id="hero-secondary-cta">
+              Briefing
+            </button>
+          </div>
+
+          <p class="quiet-disclaimer" id="hero-disclaimer"></p>
+        </div>
+
+        <!-- Retro Policy Monitor Console -->
+        <div class="console-frame">
+          <div class="console-titlebar">
+            <span class="console-kicker" id="hero-preview-title">POLICY PREVIEW</span>
+            <span class="console-tag">HYPOTHETICAL</span>
+          </div>
+
+          <div class="console-switch-bank" id="hero-preset-tabs" role="tablist" aria-label="Stakeholder presets"></div>
+
+          <div class="console-readout-grid">
+            <div class="lens-radar-wrap" id="hero-radar-container" aria-label="5-Indicator Balance Chart"></div>
+            <div class="lens-bars-wrap" id="hero-mini-bars"></div>
+          </div>
+
+          <div class="console-statusbar">
+            <span class="console-status-msg" id="hero-active-rule-summary"></span>
+            <button type="button" class="console-jump-btn" data-tab-target="simulator">
+              Load Preset &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         2. SCENARIO & STAKEHOLDERS (FACTION BRIEFING)
+         ================================================================== -->
+    <section class="tab-panel" id="panel-scenario" data-section="scenario">
+      <div class="briefing-callout">
+        <p class="eyebrow" id="scenario-eyebrow"></p>
+        <h2 class="section-title" id="scenario-title"></h2>
+        <p class="section-lead" id="scenario-context"></p>
+      </div>
+
+      <!-- 4 Faction Cards (Minimal upfront, expandable stakes) -->
+      <div class="stakeholders-grid" id="stakeholders-grid"></div>
+
+      <!-- Collapsible System Flow -->
+      <details class="disclosure-drawer">
+        <summary class="disclosure-summary">
+          <span>[+] System Pipeline &amp; Background Context</span>
+          <span class="disclosure-hint">4 Stages</span>
+        </summary>
+        <div class="disclosure-body">
+          <p class="section-body-text" id="scenario-extended-context"></p>
+          <div class="pipeline-grid" id="scenario-pipeline-grid"></div>
+        </div>
+      </details>
+
+      <div class="section-next-bar">
+        <span>Ready to test policies?</span>
+        <button type="button" class="btn-action-sm" data-tab-target="simulator">
+          Start Simulator &rarr;
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         3. SIMULATOR (HIGH-CONTRAST RETRO CONTROL BOARD)
+         ================================================================== -->
+    <section class="tab-panel" id="panel-simulator" data-section="simulator">
+      <!-- Top Doctrine Selector Bar -->
+      <div class="sim-preset-bar">
+        <div class="sim-preset-top">
+          <div class="presets-inline" id="simulator-presets-grid" role="group" aria-label="Stakeholder presets"></div>
+          <button type="button" class="btn-utility" id="reset-neutral-btn">Reset [50]</button>
+        </div>
+        <details class="inline-rationale-details" id="preset-rationale-details">
+          <summary class="inline-rationale-summary">
+            <span class="active-doctrine-pill" id="active-preset-badge">BALANCED REGULATOR</span>
+            <span class="inline-why-link">[+] Preset rationale</span>
+          </summary>
+          <p class="inline-rationale-text" id="preset-rationale-box"></p>
+        </details>
+      </div>
+
+      <!-- Main Two-Column Control Desk -->
+      <div class="simulator-workspace">
+        <!-- LEFT: 5 Clean Faders -->
+        <div class="sim-controls-col">
+          <div class="col-header-line">
+            <h3 class="panel-heading">POLICY LEVERS</h3>
+            <span class="quiet-meta">[?] = details</span>
+          </div>
+          <div class="variables-ledger" id="decision-variables-container"></div>
+        </div>
+
+        <!-- RIGHT: 5 High-Contrast Meters + Active Event Banner -->
+        <div class="sim-dashboard-col">
+          <div class="col-header-line">
+            <h3 class="panel-heading">OUTCOME METERS</h3>
+            <span class="quiet-meta">Base 50 · Click meter for math</span>
+          </div>
+
+          <div class="indicators-ledger" id="consequence-indicators-container"></div>
+
+          <!-- Inline Math Trace (Hidden until user clicks an indicator!) -->
+          <div class="formula-inspector-box hidden" id="formula-inspector-card"></div>
+
+          <!-- Active Triggered Event Alerts (Pops prominently when triggered!) -->
+          <div id="active-alerts-strip" class="active-alerts-strip"></div>
+
+          <!-- Collapsed Rule Book -->
+          <details class="disclosure-drawer compact-drawer">
+            <summary class="disclosure-summary">
+              <span>[+] Rule Triggers (<span id="triggered-count-badge">0 / 4 active</span>)</span>
+              <span class="disclosure-hint">Test Rules</span>
+            </summary>
+            <div class="disclosure-body">
+              <div class="interactions-list" id="interactions-monitor-list"></div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Collapsed Secondary Tools -->
+      <div class="sim-secondary-drawers">
+        <details class="disclosure-drawer">
+          <summary class="disclosure-summary">
+            <span>[+] Balance Radar</span>
+            <span class="disclosure-hint" id="radar-mean-hint">AVG 50</span>
+          </summary>
+          <div class="disclosure-body">
+            <div class="radar-box">
+              <div class="radar-card-copy">
+                <div class="radar-legend">
+                  <span class="legend-item"><span class="legend-swatch swatch-current"></span> Current</span>
+                  <span class="legend-item"><span class="legend-swatch swatch-baseline"></span> Base 50</span>
+                </div>
+                <div class="radar-summary-stats" id="radar-summary-stats"></div>
+              </div>
+              <div class="sim-radar-svg-box" id="sim-radar-container"></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="disclosure-drawer">
+          <summary class="disclosure-summary">
+            <span>[+] Compare Policies Side-by-Side</span>
+            <span class="disclosure-hint">4 Presets &amp; Saved</span>
+          </summary>
+          <div class="disclosure-body">
+            <div class="compare-header">
+              <div class="compare-mode-toggle">
+                <button type="button" class="mode-switch active" id="compare-mode-presets">4 Presets</button>
+                <button type="button" class="mode-switch" id="compare-mode-saved">Saved (<span id="saved-count">0</span>/3)</button>
+              </div>
+              <div class="snapshot-controls" id="snapshot-controls-bar">
+                <input type="text" id="snapshot-name-input" class="snapshot-input" placeholder="Run name..." maxlength="32" />
+                <button type="button" class="btn-action-sm" id="save-snapshot-btn">Save</button>
+                <button type="button" class="btn-utility" id="clear-snapshots-btn">Clear</button>
+              </div>
+            </div>
+            <div class="table-scroll-wrap" id="comparison-table-container"></div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         4. MODEL & ETHICS (VISUAL BLOCKS + ACCORDIONS)
+         ================================================================== -->
+    <section class="tab-panel" id="panel-model" data-section="model">
+      <div class="briefing-callout">
+        <p class="eyebrow" id="model-eyebrow"></p>
+        <h2 class="section-title" id="model-title"></h2>
+        <!-- Visual 4-Block Game Equation Highlight -->
+        <div class="equation-blocks" aria-label="Scoring formula overview">
+          <div class="eq-step"><span class="eq-num">50</span><span class="eq-lbl">Baseline</span></div>
+          <span class="eq-op">+</span>
+          <div class="eq-step"><span class="eq-num">&Sigma; Weights</span><span class="eq-lbl">5 Sliders</span></div>
+          <span class="eq-op">+</span>
+          <div class="eq-step"><span class="eq-num">&Delta; Rules</span><span class="eq-lbl">4 Combos</span></div>
+          <span class="eq-op">=</span>
+          <div class="eq-step eq-final"><span class="eq-num">0&ndash;100</span><span class="eq-lbl">Clamped Score</span></div>
+        </div>
+        <p class="quiet-disclaimer" id="model-how-scoring-works"></p>
+      </div>
+
+      <h3 class="mini-section-heading">CORE TRADE-OFFS</h3>
+      <div class="tradeoffs-grid" id="tradeoffs-grid"></div>
+
+      <h3 class="mini-section-heading">MODEL DOCUMENTATION</h3>
+      <div class="accordion-stack">
+        <details class="disclosure-drawer">
+          <summary class="disclosure-summary">
+            <span>[+] Weight Matrix Table</span>
+            <span class="disclosure-hint">5 Levers &times; 5 Meters</span>
+          </summary>
+          <div class="disclosure-body">
+            <code class="formula-code-block" id="model-formula-text"></code>
+            <p class="drawer-note" id="model-weight-explanation"></p>
+            <div class="table-scroll-wrap" id="weight-matrix-table-wrap"></div>
+          </div>
+        </details>
+
+        <details class="disclosure-drawer">
+          <summary class="disclosure-summary">
+            <span>[+] Conditional Interaction Rules</span>
+            <span class="disclosure-hint">4 Variable Pairs</span>
+          </summary>
+          <div class="disclosure-body">
+            <div class="table-scroll-wrap" id="interactions-doc-table-wrap"></div>
+          </div>
+        </details>
+
+        <details class="disclosure-drawer">
+          <summary class="disclosure-summary">
+            <span>[+] IS 201 Course Concepts Applied</span>
+            <span class="disclosure-hint">6 Domains</span>
+          </summary>
+          <div class="disclosure-body">
+            <div class="concepts-grid" id="course-concepts-grid"></div>
+          </div>
+        </details>
+
+        <details class="disclosure-drawer">
+          <summary class="disclosure-summary">
+            <span>[+] Assumptions &amp; Hypothetical Notice</span>
+            <span class="disclosure-hint">Limitations</span>
+          </summary>
+          <div class="disclosure-body">
+            <p class="drawer-note" id="model-hypothetical-banner"></p>
+            <ul class="assumptions-list" id="assumptions-list"></ul>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         5. EVIDENCE (COMPACT EXPANDABLE DOSSIER)
+         ================================================================== -->
+    <section class="tab-panel" id="panel-evidence" data-section="evidence">
+      <div class="evidence-top-row">
+        <div>
+          <p class="eyebrow" id="evidence-eyebrow"></p>
+          <h2 class="section-title compact-mb" id="evidence-title"></h2>
+        </div>
+        <button type="button" class="btn-utility" id="toggle-all-evidence">Expand All</button>
+      </div>
+
+      <p class="quiet-disclaimer" id="evidence-subtitle"></p>
+
+      <div class="accordion-stack" id="evidence-cards-container"></div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand-col">
+        <span class="footer-brand" id="footer-brand-name">node_pool</span>
+        <span class="footer-disclaimer" id="footer-disclaimer-text"></span>
+      </div>
+      <div class="footer-links-col">
+        <button type="button" class="footer-link-btn" data-tab-target="overview">Overview</button>
+        <button type="button" class="footer-link-btn" data-tab-target="scenario">Scenario</button>
+        <button type="button" class="footer-link-btn" data-tab-target="simulator">Simulator</button>
+        <button type="button" class="footer-link-btn" data-tab-target="model">Model &amp; Ethics</button>
+        <button type="button" class="footer-link-btn" data-tab-target="evidence">Evidence</button>
+      </div>
+    </div>
+  </footer>
+
+  <script src="content.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

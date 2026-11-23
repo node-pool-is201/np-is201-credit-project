@@ -1,0 +1,20 @@
+# macOS & Editor files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Firebase local cache & logs
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log
+
+# Node / dependencies (if ever used locally)
+node_modules/
+npm-debug.log*
+.npmrc
