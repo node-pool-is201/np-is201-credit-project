@@ -31,7 +31,7 @@ window.SITE_CONTENT = {
   // --------------------------------------------------------------------------
   hero: {
     eyebrow: "node_pool — AI Credit Scoring Ethics Simulator",
-    headline: "Every lending algorithm makes a moral choice",
+    headline: "Every lending algorithm makes a moral choice.",
     headlineAccent: "",
     subtext:
       "Explore how AI loan evaluation affects unbanked and thin-file borrowers. Adjust system policies, inspect trade-offs, and test ethical outcomes.",
