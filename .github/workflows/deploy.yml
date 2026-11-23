@@ -1,0 +1,93 @@
+name: Firebase Deployment (Staging & Prod)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [staging, main]
+
+permissions:
+  contents: read
+  checks: write
+  id-token: write
+
+env:
+  GCP_WORKLOAD_IDENTITY_PROVIDER: "projects/96911272552/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+  GCP_SERVICE_ACCOUNT: "github-action-deployer@is201-ethics-credit-project.iam.gserviceaccount.com"
+  FIREBASE_PROJECT_ID: "is201-ethics-credit-project"
+
+jobs:
+  validate-release:
+    name: "Validate Release Integrity"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run full syntax, rubric, and simulation suite
+        run: node scripts/validate-project.js --stage=all
+
+  deploy-staging:
+    name: "Deploy Staging Channel"
+    needs: validate-release
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ steps.firebase_staging.outputs.url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Authenticate to Google Cloud (Keyless OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Deploy to Firebase Hosting (staging channel)
+        id: firebase_staging
+        run: |
+          npx -y firebase-tools@latest hosting:channel:deploy staging \
+            --only nodepool \
+            --project "${{ env.FIREBASE_PROJECT_ID }}" \
+            --expires 30d \
+            --json > /tmp/fb-staging.json
+          STAGING_URL=$(node -e 'const d=require("/tmp/fb-staging.json"); const res=Object.values(d.result||{})[0]||{}; console.log(res.url||"");')
+          echo "url=$STAGING_URL" >> "$GITHUB_OUTPUT"
+
+  deploy-production:
+    name: "Deploy Production (Live)"
+    needs: validate-release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://node-pool-is201.web.app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Authenticate to Google Cloud (Keyless OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Deploy live to Firebase Hosting
+        run: |
+          npx -y firebase-tools@latest deploy --only hosting:nodepool --project "${{ env.FIREBASE_PROJECT_ID }}"

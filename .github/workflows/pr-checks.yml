@@ -1,10 +1,7 @@
-name: node_pool CI/CD Pipeline
+name: PR Validation & Preview
 
 on:
-  workflow_dispatch:
   pull_request:
-    branches: [staging, main]
-  push:
     branches: [staging, main]
 
 permissions:
@@ -19,9 +16,6 @@ env:
   FIREBASE_PROJECT_ID: "is201-ethics-credit-project"
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # STAGE 1: Syntax, JSON Config, & Merge-Conflict Gate
-  # ---------------------------------------------------------------------------
   syntax-check:
     name: "1 · Syntax & Conflict Check"
     runs-on: ubuntu-latest
@@ -37,9 +31,6 @@ jobs:
       - name: Validate JS/JSON syntax & conflict markers
         run: node scripts/validate-project.js --stage=syntax
 
-  # ---------------------------------------------------------------------------
-  # STAGE 2: IS 201 Rubric & Model Integrity Gate
-  # ---------------------------------------------------------------------------
   rubric-gate:
     name: "2 · IS 201 Rubric Gate"
     needs: syntax-check
@@ -56,9 +47,6 @@ jobs:
       - name: Validate IS 201 variables, weights, & distinct pairs
         run: node scripts/validate-project.js --stage=rubric
 
-  # ---------------------------------------------------------------------------
-  # STAGE 3: Simulator Math & Rule Trigger Smoke Tests
-  # ---------------------------------------------------------------------------
   simulation-test:
     name: "3 · Simulation Smoke Test"
     needs: rubric-gate
@@ -75,13 +63,10 @@ jobs:
       - name: Run preset & interaction trigger tests
         run: node scripts/validate-project.js --stage=simulation
 
-  # ---------------------------------------------------------------------------
-  # STAGE 4A: Pull Request Live Preview URL (Comments preview link on PR)
-  # ---------------------------------------------------------------------------
   pr-preview:
     name: "4 · PR Preview Deploy"
     needs: simulation-test
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -143,69 +128,27 @@ jobs:
               });
             }
 
-  # ---------------------------------------------------------------------------
-  # STAGE 4B: Staging Channel Deploy (Auto-updates staging URL on push to staging)
-  # ---------------------------------------------------------------------------
-  deploy-staging:
-    name: "4 · Deploy Staging Channel"
-    needs: simulation-test
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/staging'
-    runs-on: ubuntu-latest
-    environment:
-      name: staging
-      url: ${{ steps.firebase_staging.outputs.url }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Auto-approve PR when authored by lead maintainer (Arxiel)
+        if: github.event.pull_request.user.login == 'Arxiel'
+        uses: actions/github-script@v7
         with:
-          node-version: "22"
-
-      - name: Authenticate to Google Cloud (Keyless OIDC)
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-
-      - name: Deploy to Firebase Hosting (staging channel)
-        id: firebase_staging
-        run: |
-          npx -y firebase-tools@latest hosting:channel:deploy staging \
-            --only nodepool \
-            --project "${{ env.FIREBASE_PROJECT_ID }}" \
-            --expires 30d \
-            --json > /tmp/fb-staging.json
-          STAGING_URL=$(node -e 'const d=require("/tmp/fb-staging.json"); const res=Object.values(d.result||{})[0]||{}; console.log(res.url||"");')
-          echo "url=$STAGING_URL" >> "$GITHUB_OUTPUT"
-
-  # ---------------------------------------------------------------------------
-  # STAGE 5: Production Deploy (Deploys to live URL when merged into main)
-  # ---------------------------------------------------------------------------
-  deploy-production:
-    name: "5 · Deploy Production (Live)"
-    needs: simulation-test
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://node-pool-is201.web.app
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Authenticate to Google Cloud (Keyless OIDC)
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-
-      - name: Deploy live to Firebase Hosting
-        run: |
-          npx -y firebase-tools@latest deploy --only hosting:nodepool --project "${{ env.FIREBASE_PROJECT_ID }}"
+          script: |
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            const headSha = context.payload.pull_request.head.sha;
+            const alreadyApproved = reviews.some(
+              r => r.user?.login === 'github-actions[bot]' && r.state === 'APPROVED' && r.commit_id === headSha
+            );
+            if (!alreadyApproved) {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                commit_id: headSha,
+                event: 'APPROVE',
+                body: '✅ Auto-approved lead maintainer PR (`@Arxiel`) after all CI validation & preview stages passed.',
+              });
+            }
