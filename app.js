@@ -359,7 +359,7 @@
 
     const headlineEl = document.getElementById("hero-headline");
     const hText = CONTENT.hero.headline || "";
-    const targetPhrase = "moral choice.";
+    const targetPhrase = "moral choice";
     if (hText.toLowerCase().includes(targetPhrase)) {
       const idx = hText.toLowerCase().indexOf(targetPhrase);
       const before = hText.slice(0, idx);
