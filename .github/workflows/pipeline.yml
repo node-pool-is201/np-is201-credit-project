@@ -103,6 +103,7 @@ jobs:
         run: |
           CHANNEL="pr-${{ github.event.pull_request.number }}"
           npx -y firebase-tools@latest hosting:channel:deploy "$CHANNEL" \
+            --only nodepool \
             --project "${{ env.FIREBASE_PROJECT_ID }}" \
             --expires 7d \
             --json > /tmp/fb-preview.json
@@ -172,6 +173,7 @@ jobs:
         id: firebase_staging
         run: |
           npx -y firebase-tools@latest hosting:channel:deploy staging \
+            --only nodepool \
             --project "${{ env.FIREBASE_PROJECT_ID }}" \
             --expires 30d \
             --json > /tmp/fb-staging.json
@@ -188,7 +190,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://is201-ethics-credit-project.web.app
+      url: https://node-pool-is201.web.app
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -206,4 +208,4 @@ jobs:
 
       - name: Deploy live to Firebase Hosting
         run: |
-          npx -y firebase-tools@latest deploy --only hosting --project "${{ env.FIREBASE_PROJECT_ID }}"
+          npx -y firebase-tools@latest deploy --only hosting:nodepool --project "${{ env.FIREBASE_PROJECT_ID }}"

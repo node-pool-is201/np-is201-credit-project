@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "is201-ethics-credit-project"
+  },
+  "targets": {
+    "is201-ethics-credit-project": {
+      "hosting": {
+        "nodepool": [
+          "node-pool-is201"
+        ]
+      }
+    }
   }
 }

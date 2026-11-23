@@ -2,8 +2,8 @@
 
 Interactive rule-based ethics simulator exploring how algorithmic credit evaluation affects thin-file and unbanked borrowers across **Equity & Social Justice**, **Technology Governance**, **Computing & Sustainability**, **Privacy & Data Protection**, and **Responsible Innovation**.
 
-- **Live Production URL (`main`):** https://is201-ethics-credit-project.web.app
-- **Firebase Project:** `is201-ethics-credit-project`
+- **Live Production URL (`main`):** https://node-pool-is201.web.app
+- **Firebase Project / Hosting Site:** `is201-ethics-credit-project` (`node-pool-is201`)
 
 ---
 
@@ -31,4 +31,4 @@ Almost everything on the site—copy, stakeholder presets, decision sliders, ind
    - GitHub Actions automatically runs the **3-stage validation pipeline** (`Syntax` → `IS 201 Rubric Gate` → `Simulation Smoke Test`) and deploys a **live Firebase PR Preview URL** right in the PR comments.
    - Once **1 of 1 required approver** approves and all checks pass green, merge into `staging`.
 5. **Promote `staging` → `main` for Production:**
-   - Open a Pull Request from `staging` → `main`. Once approved and merged, GitHub Actions deploys directly to `https://is201-ethics-credit-project.web.app`.
+   - Open a Pull Request from `staging` → `main`. Once approved and merged, GitHub Actions deploys directly to `https://node-pool-is201.web.app`.

@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "target": "nodepool",
     "public": ".",
     "ignore": [
       "firebase.json",
